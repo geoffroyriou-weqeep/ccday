@@ -8,6 +8,15 @@ Consommation Claude Code **du jour, par modèle**. Version minimaliste inspirée
 
 Prérequis : [Node.js](https://nodejs.org) 18 ou plus. Aucune dépendance à installer.
 
+### Sans installer (npx)
+
+```bash
+npx github:geoffroyriou-weqeep/ccday
+npx github:geoffroyriou-weqeep/ccday --date 2026-10-04 --json
+```
+
+### En local
+
 ```bash
 git clone https://github.com/geoffroyriou-weqeep/ccday.git
 cd ccday
@@ -29,7 +38,9 @@ Mise à jour : `git pull` dans le dossier cloné.
 ## Utilisation
 
 ```
-node ccday.mjs [--date YYYY-MM-DD] [--json] [--no-cost]
+ccday [--date YYYY-MM-DD] [--json] [--no-cost]
 ```
+
+(ou `node ccday.mjs …` / `npx github:geoffroyriou-weqeep/ccday …`)
 
 Lit `~/.claude/projects/**/*.jsonl`, affiche Input / Output / Cache Create / Cache Read / Total / Cost par modèle. Aucune dépendance (Node 18+).
