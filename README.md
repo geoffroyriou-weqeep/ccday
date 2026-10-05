@@ -11,8 +11,8 @@ Prérequis : [Node.js](https://nodejs.org) 18 ou plus. Aucune dépendance à ins
 ### Sans installer (npx)
 
 ```bash
-npx github:geoffroyriou-weqeep/ccday
-npx github:geoffroyriou-weqeep/ccday --date 2026-10-04 --json
+npx geoffroyriou-weqeep/ccday
+npx geoffroyriou-weqeep/ccday --date 2026-10-04 --json
 ```
 
 ### En local
@@ -41,6 +41,6 @@ Mise à jour : `git pull` dans le dossier cloné.
 ccday [--date YYYY-MM-DD] [--json] [--no-cost]
 ```
 
-(ou `node ccday.mjs …` / `npx github:geoffroyriou-weqeep/ccday …`)
+(ou `node ccday.mjs …` / `npx geoffroyriou-weqeep/ccday …`)
 
 Lit `~/.claude/projects/**/*.jsonl`, affiche Input / Output / Cache Create / Cache Read / Total / Cost par modèle. Aucune dépendance (Node 18+).
