@@ -2,6 +2,8 @@
 
 Consommation Claude Code **du jour, par modèle**. Version minimaliste inspirée de [ccusage](https://github.com/ccusage/ccusage).
 
+![ccday screenshot](docs/screenshot.png)
+
 ```
 node ccday.mjs [--date YYYY-MM-DD] [--json] [--no-cost]
 ```
