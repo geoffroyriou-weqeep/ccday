@@ -1,7 +1,7 @@
 {
   "name": "ccday",
   "version": "1.0.0",
-  "description": "Consommation Claude Code du jour, par modèle (inspiré de ccusage)",
+  "description": "Today's Claude Code usage, per model (inspired by ccusage)",
   "type": "module",
   "bin": { "ccday": "ccday.mjs" },
   "files": ["ccday.mjs"],

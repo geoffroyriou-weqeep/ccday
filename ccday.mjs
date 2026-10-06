@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ccday — usage Claude Code du jour, par modèle. Inspiré de ccusage.
+// ccday — today's Claude Code usage, per model. Inspired by ccusage.
 // Usage: ccday [--date YYYY-MM-DD] [--json] [--no-cost] [--effort]
 import { readdir, readFile, stat, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -26,12 +26,12 @@ async function* walk(dir) {
   }
 }
 
-// --- collecte : une entrée par (message.id, requestId), dernière occurrence gagne
+// --- collect: one entry per (message.id, requestId), last occurrence wins
 const rows = new Map();
 const dayStart = new Date(`${day}T00:00:00`).getTime();
 for (const root of roots) {
   for await (const file of walk(root)) {
-    // fichier pas modifié depuis le début du jour => rien à lire
+    // file not modified since the start of the day => nothing to read
     if ((await stat(file)).mtimeMs < dayStart) continue;
     const text = await readFile(file, 'utf8');
     for (const line of text.split('\n')) {
@@ -67,7 +67,7 @@ for (const { model, u, effort } of rows.values()) {
   byEffort.set(model, perEffort);
 }
 
-// --- coût (prix LiteLLM, mis en cache 24h)
+// --- cost (LiteLLM prices, cached for 24h)
 async function loadPrices() {
   const cacheDir = join(homedir(), '.cache', 'ccday');
   const cacheFile = join(cacheDir, 'prices.json');
@@ -91,7 +91,7 @@ const findPrice = (prices, model) =>
   Object.entries(prices).find(([k]) => k.endsWith(model) || model.startsWith(k.replace(/^anthropic\//, '')))?.[1];
 
 const prices = flag('no-cost') ? {} : await loadPrices();
-// prix par token pour chaque catégorie (null si modèle inconnu)
+// per-token price for each category (null if the model is unknown)
 const priceOf = (model) => {
   const p = findPrice(prices, model);
   if (!p) return null;
@@ -117,7 +117,7 @@ const out = [...byModel].map(([model, m]) => {
 
 if (flag('json')) { console.log(JSON.stringify({ date: day, models: out }, null, 2)); process.exit(0); }
 
-// --- affichage : tableau arrondi, 2 lignes par cellule (tokens puis prix/M)
+// --- display: rounded table, 2 lines per cell (tokens, then price/M)
 const useColor = (process.stdout.isTTY && !process.env.NO_COLOR) || process.env.FORCE_COLOR;
 const paint = (s, ...codes) => (useColor && codes.filter(Boolean).length ? `\x1b[${codes.filter(Boolean).join(';')}m${s}\x1b[0m` : s);
 const BORDER = '90', DIM = '2', BOLD = '1';
@@ -137,7 +137,7 @@ const sum = out.reduce((a, r) => {
   return a;
 }, { input: 0, output: 0, cacheCreate5m: 0, cacheCreate1h: 0, cacheRead: 0, total: 0, cost: 0 });
 
-// chaque ligne = { cells: [[texte, style...]], sub: [[texte]] | null }
+// each row = { main: [[text, style...]], sub: [[text]] | null }
 const modelRow = (r) => ({
   main: [[short(r.model), BOLD, modelColor(r.model)], ...KEYS.map((k) => [n(r[k])]), [n(r.total), BOLD], [usd(r.cost), BOLD, '32']],
   sub: [[''], ...KEYS.map((k) => [perM(r.price?.[PKEY[k]]), DIM]), [''], ['']],
@@ -157,8 +157,8 @@ const printRow = (cells) => {
 };
 
 console.log();
-console.log(` ${paint('◆ Claude Code', BOLD, '36')} ${paint('· Daily Usage par modèle ·', DIM)} ${paint(day, BOLD)}`);
-if (!out.length) console.log('\n Aucune consommation.\n');
+console.log(` ${paint('◆ Claude Code', BOLD, '36')} ${paint('· Daily Usage per model ·', DIM)} ${paint(day, BOLD)}`);
+if (!out.length) console.log('\n No usage.\n');
 else {
   console.log(` ${paint(usd(sum.cost), BOLD, '32')} ${paint('·', DIM)} ${paint(n(sum.total) + ' tokens', BOLD)}\n`);
   console.log(line('╭', '┬', '╮'));
@@ -180,10 +180,10 @@ else {
       console.log(` ${paint(short(r.model).padEnd(12), BOLD, modelColor(r.model))} ${paint('█'.repeat(filled), modelColor(r.model))}${paint('░'.repeat(24 - filled), BORDER)} ${String(Math.round(ratio * 100)).padStart(3)}%  ${fmt.label(r)}`);
     }
   };
-  if (out.length > 1 && sum.total > 0) bars('Répartition par token', out, sum.total, { value: (r) => r.total, label: (r) => n(r.total) });
+  if (out.length > 1 && sum.total > 0) bars('Token share', out, sum.total, { value: (r) => r.total, label: (r) => n(r.total) });
 
   if (flag('effort')) {
-    console.log(`\n ${paint('Effort de réflexion par modèle', BOLD)} ${paint('(par message)', DIM)}`);
+    console.log(`\n ${paint('Thinking effort per model', BOLD)} ${paint('(per message)', DIM)}`);
     for (const r of out) {
       const total = Object.values(r.effort).reduce((a, e) => a + e.msgs, 0);
       for (const [lvl, e] of Object.entries(r.effort).sort((a, b) => b[1].msgs - a[1].msgs)) {
@@ -194,5 +194,5 @@ else {
       }
     }
   }
-  console.log(paint('\n Cache 5m / 1h : durée de vie du cache à l’écriture (1h facturé plus cher). Prix LiteLLM, par million de tokens.', DIM) + '\n');
+  console.log(paint('\n Cache 5m / 1h: cache lifetime at write time (1h costs more). LiteLLM prices, per million tokens.', DIM) + '\n');
 }
