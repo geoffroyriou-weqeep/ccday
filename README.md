@@ -2,7 +2,7 @@
 
 Claude Code usage **for the day, per model**. Minimal take inspired by [ccusage](https://github.com/ccusage/ccusage).
 
-![ccday screenshot](docs/screenshot.png)
+![ccday screenshot](docs/screenshot-en.png)
 
 ## Installation
 
