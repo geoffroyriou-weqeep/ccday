@@ -38,9 +38,16 @@ Mise à jour : `git pull` dans le dossier cloné.
 ## Utilisation
 
 ```
-ccday [--date YYYY-MM-DD] [--json] [--no-cost]
+ccday [--date YYYY-MM-DD] [--json] [--no-cost] [--effort]
 ```
 
 (ou `node ccday.mjs …` / `npx geoffroyriou-weqeep/ccday …`)
 
-Lit `~/.claude/projects/**/*.jsonl`, affiche Input / Output / Cache Create / Cache Read / Total / Cost par modèle. Aucune dépendance (Node 18+).
+Lit `~/.claude/projects/**/*.jsonl`, affiche Input / Output / Cache Create / Cache Read / Total / Cost par modèle. Sous le tableau, une barre montre la répartition des tokens par modèle.
+
+| Option | Effet |
+| --- | --- |
+| `--date YYYY-MM-DD` | jour à afficher (défaut : aujourd'hui) |
+| `--json` | sortie JSON (inclut le détail par effort) |
+| `--no-cost` | n'affiche pas les coûts (pas de téléchargement des prix) |
+| `--effort` | ajoute l'effort de réflexion par modèle : part des messages par niveau (`low`, `medium`, `high`…) et tokens de thinking rapportés à l'output |

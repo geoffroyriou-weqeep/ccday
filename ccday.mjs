@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ccday — usage Claude Code du jour, par modèle. Inspiré de ccusage.
-// Usage: ccday [--date YYYY-MM-DD] [--json] [--no-cost]
+// Usage: ccday [--date YYYY-MM-DD] [--json] [--no-cost] [--effort]
 import { readdir, readFile, stat, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -43,13 +43,14 @@ for (const root of roots) {
       if (!u || !model || model === '<synthetic>' || !j.timestamp) continue;
       if (localDay(new Date(j.timestamp)) !== day) continue;
       const key = j.message.id && j.requestId ? `${j.message.id}:${j.requestId}` : j.uuid ?? line;
-      rows.set(key, { model, u });
+      rows.set(key, { model, u, effort: j.perTurnEffort ?? j.effort ?? 'n/a' });
     }
   }
 }
 
 const byModel = new Map();
-for (const { model, u } of rows.values()) {
+const byEffort = new Map(); // model -> effort -> { msgs, output, thinking }
+for (const { model, u, effort } of rows.values()) {
   const m = byModel.get(model) ?? { input: 0, output: 0, cacheCreate: 0, cacheCreate1h: 0, cacheRead: 0 };
   m.input += u.input_tokens ?? 0;
   m.output += u.output_tokens ?? 0;
@@ -57,6 +58,13 @@ for (const { model, u } of rows.values()) {
   m.cacheCreate1h += u.cache_creation?.ephemeral_1h_input_tokens ?? 0;
   m.cacheRead += u.cache_read_input_tokens ?? 0;
   byModel.set(model, m);
+  const perEffort = byEffort.get(model) ?? new Map();
+  const e = perEffort.get(effort) ?? { msgs: 0, output: 0, thinking: 0 };
+  e.msgs++;
+  e.output += u.output_tokens ?? 0;
+  e.thinking += u.output_tokens_details?.thinking_tokens ?? 0;
+  perEffort.set(effort, e);
+  byEffort.set(model, perEffort);
 }
 
 // --- coût (prix LiteLLM, mis en cache 24h)
@@ -102,7 +110,7 @@ const costOf = (m, p) => p && (m.input * p.input + m.output * p.output + (m.cach
 const out = [...byModel].map(([model, m]) => {
   const price = priceOf(model);
   return {
-    model, ...m, cacheCreate5m: m.cacheCreate - m.cacheCreate1h,
+    model, ...m, effort: Object.fromEntries(byEffort.get(model)), cacheCreate5m: m.cacheCreate - m.cacheCreate1h,
     total: m.input + m.output + m.cacheCreate + m.cacheRead, price, cost: costOf(m, price),
   };
 }).sort((a, b) => b.total - a.total);
@@ -164,12 +172,26 @@ else {
   });
   console.log(line('╰', '┴', '╯'));
 
-  if (out.length > 1 && sum.cost > 0) {
-    console.log(`\n ${paint('Répartition du coût', BOLD)}`);
-    for (const r of out) {
-      const ratio = (r.cost ?? 0) / sum.cost;
+  const bars = (title, items, total, fmt) => {
+    console.log(`\n ${paint(title, BOLD)}`);
+    for (const r of items) {
+      const ratio = total ? fmt.value(r) / total : 0;
       const filled = Math.round(ratio * 24);
-      console.log(` ${paint(short(r.model).padEnd(12), BOLD, modelColor(r.model))} ${paint('█'.repeat(filled), modelColor(r.model))}${paint('░'.repeat(24 - filled), BORDER)} ${String(Math.round(ratio * 100)).padStart(3)}%  ${usd(r.cost)}`);
+      console.log(` ${paint(short(r.model).padEnd(12), BOLD, modelColor(r.model))} ${paint('█'.repeat(filled), modelColor(r.model))}${paint('░'.repeat(24 - filled), BORDER)} ${String(Math.round(ratio * 100)).padStart(3)}%  ${fmt.label(r)}`);
+    }
+  };
+  if (out.length > 1 && sum.total > 0) bars('Répartition par token', out, sum.total, { value: (r) => r.total, label: (r) => n(r.total) });
+
+  if (flag('effort')) {
+    console.log(`\n ${paint('Effort de réflexion par modèle', BOLD)} ${paint('(par message)', DIM)}`);
+    for (const r of out) {
+      const total = Object.values(r.effort).reduce((a, e) => a + e.msgs, 0);
+      for (const [lvl, e] of Object.entries(r.effort).sort((a, b) => b[1].msgs - a[1].msgs)) {
+        const ratio = e.msgs / total;
+        const filled = Math.round(ratio * 24);
+        const think = e.output ? Math.round((e.thinking / e.output) * 100) : 0;
+        console.log(` ${paint(short(r.model).padEnd(12), BOLD, modelColor(r.model))} ${lvl.padEnd(7)} ${paint('█'.repeat(filled), modelColor(r.model))}${paint('░'.repeat(24 - filled), BORDER)} ${String(Math.round(ratio * 100)).padStart(3)}%  ${n(e.msgs)} msgs · thinking ${n(e.thinking)}/${n(e.output)} output (${think}%)`);
+      }
     }
   }
   console.log(paint('\n Cache 5m / 1h : durée de vie du cache à l’écriture (1h facturé plus cher). Prix LiteLLM, par million de tokens.', DIM) + '\n');
